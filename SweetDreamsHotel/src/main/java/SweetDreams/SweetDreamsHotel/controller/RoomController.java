@@ -89,34 +89,7 @@ public class RoomController {
         if (room == null)
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
 
-        try {
-            /* save it to amazon bucket */
-
-            // get file metadata
-            Map<String, String> metadata = new HashMap<>();
-            metadata.put("Content-Type", file.getContentType());
-            metadata.put("Content-Length", String.valueOf(file.getSize()));
-
-            // Save Image in S3
-            UUID uniqueKey = UUID.randomUUID();
-            String path = String.format("%s/%s", BucketName.SWEET_DREAMS_HOTEL_IMAGE.getBucketName(), uniqueKey);
-            String fileName = String.format("%s", file.getOriginalFilename());
-
-            try {
-                upload(path, fileName, Optional.of(metadata), file.getInputStream());
-            } catch (IOException e) {
-                throw new IllegalStateException("Failed to upload file", e);
-            }
-
-            // Construct the S3 URL
-            String s3Url = String.format("https://%s.s3.%s.amazonaws.com/%s/%s", BucketName.SWEET_DREAMS_HOTEL_IMAGE.getBucketName(), Regions.EU_NORTH_1.getName(), uniqueKey.toString(), fileName);
-
-            // Set the image name in the Room entity
-            room.setRoomImg(s3Url);
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        if (uploadImageToBucket(file, room)) return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
 
         /* check if room with that nr is already there */
         Room existingRoomNr = roomService.getRoomByNumber(room.getRoomNumber());
@@ -149,22 +122,58 @@ public class RoomController {
     }
 
     // update room
-    @PutMapping("/update/{roomNr}")
+    @PutMapping(value = "/{roomNr}/update", consumes = "multipart/form-data")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> modifyUser(@PathVariable String roomNr, @RequestBody Room room) {
+    public ResponseEntity<?> modifyUser(@PathVariable String roomNr, @RequestPart("room") String roomString,
+                                        @RequestParam("roomImg") MultipartFile file) throws JsonProcessingException {
+        Room room = new ObjectMapper().readValue(roomString, Room.class);
         if (roomNr == null)
             return new ResponseEntity<>("Missing room Nr", HttpStatus.BAD_REQUEST);
         Room existingRoom = roomService.getRoomByNumber(roomNr);
         if (existingRoom != null) {
             existingRoom.setRoomNumber(room.getRoomNumber());
+
+            if (uploadImageToBucket(file, room)) return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
             roomService.updateRoom(room);
             return new ResponseEntity<>(room, HttpStatus.OK);
         }
         return new ResponseEntity<>(room, HttpStatus.NOT_FOUND);
     }
 
+    private boolean uploadImageToBucket(@RequestParam("roomImg") MultipartFile file, Room room) {
+        try {
+            /* save it to amazon bucket */
+
+            // get file metadata
+            Map<String, String> metadata = new HashMap<>();
+            metadata.put("Content-Type", file.getContentType());
+            metadata.put("Content-Length", String.valueOf(file.getSize()));
+
+            // Save Image in S3
+            UUID uniqueKey = UUID.randomUUID();
+            String path = String.format("%s/%s", BucketName.SWEET_DREAMS_HOTEL_IMAGE.getBucketName(), uniqueKey);
+            String fileName = String.format("%s", file.getOriginalFilename());
+
+            try {
+                upload(path, fileName, Optional.of(metadata), file.getInputStream());
+            } catch (IOException e) {
+                throw new IllegalStateException("Failed to upload file", e);
+            }
+
+            // Construct the S3 URL
+            String s3Url = String.format("https://%s.s3.%s.amazonaws.com/%s/%s", BucketName.SWEET_DREAMS_HOTEL_IMAGE.getBucketName(), Regions.EU_NORTH_1.getName(), uniqueKey.toString(), fileName);
+
+            // Set the image name in the Room entity
+            room.setRoomImg(s3Url);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return true;
+        }
+        return false;
+    }
+
     // delete room
-    @DeleteMapping("/delete/{roomNr}")
+    @DeleteMapping("/{roomNr}/delete")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteUser(@PathVariable String roomNr) {
         if (roomNr == null)

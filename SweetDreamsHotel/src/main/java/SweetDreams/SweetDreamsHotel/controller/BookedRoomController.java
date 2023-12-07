@@ -35,13 +35,16 @@ public class BookedRoomController {
     }
 
     // register new booked room
-    @PostMapping("/register")
+    @PostMapping("/book")
     public ResponseEntity<?> createBookedRoom(@RequestBody BookedRoom bookedRoom) {
         if (bookedRoom == null)
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         /* ----------- get all foreign keys and add them -------------- */
         // Room
         Room room = roomService.getRoomByNumber(bookedRoom.getRoom().getRoomNumber());
+        if (room.getEStatus().toString().equals("TAKEN")) {
+            return new ResponseEntity<>(HttpStatus.FOUND);
+        }
         bookedRoom.setRoom(room);
         // Customer
         Customer customer = customerService.getCustomerByCustomerId(bookedRoom.getCustomer().getCustomerId());
