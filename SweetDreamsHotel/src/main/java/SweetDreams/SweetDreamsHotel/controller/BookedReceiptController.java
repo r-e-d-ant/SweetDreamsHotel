@@ -2,8 +2,12 @@ package SweetDreams.SweetDreamsHotel.controller;
 
 import SweetDreams.SweetDreamsHotel.model.BookedRoom;
 import SweetDreams.SweetDreamsHotel.model.BookedReceipt;
+import SweetDreams.SweetDreamsHotel.model.Enums.EBillStatus;
+import SweetDreams.SweetDreamsHotel.model.Enums.EStatus;
+import SweetDreams.SweetDreamsHotel.model.Room;
 import SweetDreams.SweetDreamsHotel.service.BookedReceiptService;
 import SweetDreams.SweetDreamsHotel.service.BookedRoomService;
+import SweetDreams.SweetDreamsHotel.service.RoomService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,11 +28,13 @@ import java.util.UUID;
 public class BookedReceiptController {
     BookedReceiptService bookedReceiptService;
     BookedRoomService bookedRoomService;
+    RoomService roomService;
 
     @Autowired
-    public BookedReceiptController(BookedReceiptService bookedReceiptService, BookedRoomService bookedRoomService) {
+    public BookedReceiptController(BookedReceiptService bookedReceiptService, BookedRoomService bookedRoomService, RoomService roomService) {
         this.bookedReceiptService = bookedReceiptService;
         this.bookedRoomService = bookedRoomService;
+        this.roomService = roomService;
     }
 
     // register new booked room receipt
@@ -42,6 +48,13 @@ public class BookedReceiptController {
         bookedReceipt.setBookedRoom(bookedRoom);
         /* ---------------------------------------------------------- */
         bookedReceiptService.saveBookedReceipt(bookedReceipt);
+        Room room = roomService.getRoomByNumber(bookedRoom.getRoom().getRoomNumber());
+        // update room status to taken
+        room.setEStatus(EStatus.AVAILABLE);
+        roomService.updateRoom(room);
+        // update booked room status to BILLED
+        bookedRoom.setEBillStatus(EBillStatus.BILLED);
+        bookedRoomService.updateBookedRoom(bookedRoom);
         return new ResponseEntity<>(bookedReceipt, HttpStatus.CREATED);
     }
 

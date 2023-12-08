@@ -47,11 +47,22 @@ public class CustomerController {
     }
 
     // get one customer
-    @GetMapping("/{customerId}")
+    @GetMapping("/{customerId}/info")
     public ResponseEntity<?> oneCustomer(@PathVariable UUID customerId) {
         if (customerId == null)
             return new ResponseEntity<>("Missing customer Id", HttpStatus.BAD_REQUEST);
         Customer customer = customerService.getCustomerByCustomerId(customerId);
+        return new ResponseEntity<>(customer, HttpStatus.FOUND);
+    }
+
+    @GetMapping("/{customerEmail}")
+    public ResponseEntity<?> oneCustomerEmail(@PathVariable String customerEmail) {
+        if (customerEmail == null)
+            return new ResponseEntity<>("Missing customer email", HttpStatus.BAD_REQUEST);
+        Customer customer = customerService.getCustomerByEmail(customerEmail);
+        if(customer == null) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
         return new ResponseEntity<>(customer, HttpStatus.FOUND);
     }
 

@@ -131,10 +131,30 @@ public class RoomController {
             return new ResponseEntity<>("Missing room Nr", HttpStatus.BAD_REQUEST);
         Room existingRoom = roomService.getRoomByNumber(roomNr);
         if (existingRoom != null) {
-            existingRoom.setRoomNumber(room.getRoomNumber());
+            if (room.getRoomNumber() != null) {
+                existingRoom.setRoomNumber(room.getRoomNumber());
+            }
+            if (room.getERoomType() != null) {
+                existingRoom.setERoomType(room.getERoomType());
+            }
+            if (room.getMaxPerson() != null) {
+                existingRoom.setMaxPerson(room.getMaxPerson());
+            }
+            if (room.getBeds() != null) {
+                existingRoom.setBeds(room.getBeds());
+            }
+            if (room.getRoomSize() != null) {
+                existingRoom.setRoomSize(room.getRoomSize());
+            }
+            if (room.getPrice() != null) {
+                existingRoom.setPrice(room.getPrice());
+            }
+            if (room.getRoomImg() != null) {
+                existingRoom.setRoomImg(room.getRoomImg());
+            }
 
-            if (uploadImageToBucket(file, room)) return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-            roomService.updateRoom(room);
+            if (uploadImageToBucket(file, existingRoom)) return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            roomService.updateRoom(existingRoom);
             return new ResponseEntity<>(room, HttpStatus.OK);
         }
         return new ResponseEntity<>(room, HttpStatus.NOT_FOUND);

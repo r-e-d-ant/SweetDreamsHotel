@@ -1,5 +1,6 @@
 package SweetDreams.SweetDreamsHotel.model;
 
+import SweetDreams.SweetDreamsHotel.model.Enums.EBillStatus;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.GeneratedValue;
@@ -31,4 +32,5 @@ public class BookedRoom {
     private LocalDate checkinDate;
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate checkoutDate;
+    private EBillStatus eBillStatus;
 }

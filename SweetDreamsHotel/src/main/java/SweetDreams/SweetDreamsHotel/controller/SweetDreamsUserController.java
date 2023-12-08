@@ -115,8 +115,9 @@ public class SweetDreamsUserController {
             BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
             if (passwordEncoder.matches(sweetDreamsUser.getUserPassword(), hashedPassword)) {
-                String user_role = String.valueOf(existingUserEmail.getEUserRole());
+                UUID usr_id = existingUserEmail.getUserId();
                 String usr_email = existingUserEmail.getUserEmail();
+                String user_role = String.valueOf(existingUserEmail.getEUserRole());
                 // generate JWT token
                 String token = jwtTokenProvider.createToken(usr_email, user_role);
 

@@ -2,6 +2,8 @@ package SweetDreams.SweetDreamsHotel.controller;
 
 import SweetDreams.SweetDreamsHotel.model.BookedRoom;
 import SweetDreams.SweetDreamsHotel.model.Customer;
+import SweetDreams.SweetDreamsHotel.model.Enums.EBillStatus;
+import SweetDreams.SweetDreamsHotel.model.Enums.EStatus;
 import SweetDreams.SweetDreamsHotel.model.Room;
 import SweetDreams.SweetDreamsHotel.service.BookedRoomService;
 import SweetDreams.SweetDreamsHotel.service.CustomerService;
@@ -29,9 +31,10 @@ public class BookedRoomController {
     CustomerService customerService;
 
     @Autowired
-    public BookedRoomController(BookedRoomService bookedRoomService, RoomService roomService) {
+    public BookedRoomController(BookedRoomService bookedRoomService, RoomService roomService, CustomerService customerService) {
         this.bookedRoomService = bookedRoomService;
         this.roomService = roomService;
+        this.customerService = customerService;
     }
 
     // register new booked room
@@ -50,7 +53,13 @@ public class BookedRoomController {
         Customer customer = customerService.getCustomerByCustomerId(bookedRoom.getCustomer().getCustomerId());
         bookedRoom.setCustomer(customer);
         /* ---------------------------------------------------------- */
+        // update booked room status to PENDING
+        bookedRoom.setEBillStatus(EBillStatus.PENDING);
         bookedRoomService.saveBookedRoom(bookedRoom);
+
+        // update room status to taken
+        room.setEStatus(EStatus.TAKEN);
+        roomService.updateRoom(room);
         return new ResponseEntity<>(bookedRoom, HttpStatus.CREATED);
     }
 
@@ -71,7 +80,7 @@ public class BookedRoomController {
     }
 
     // update booked room
-    @PutMapping("/update/{bookingId}")
+    @PutMapping("/{bookingId}/update")
     public ResponseEntity<?> modifyUser(@PathVariable UUID bookingId, @RequestBody BookedRoom bookedRoom) {
         if (bookingId == null)
             return new ResponseEntity<>("Missing booking Id", HttpStatus.BAD_REQUEST);
@@ -85,14 +94,22 @@ public class BookedRoomController {
     }
 
     // delete room
-    @DeleteMapping("/delete/{bookingId}")
+    @DeleteMapping("/{bookingId}/delete")
     public ResponseEntity<?> deleteUser(@PathVariable UUID bookingId) {
         if (bookingId == null)
             return new ResponseEntity<>("Missing booking Id", HttpStatus.BAD_REQUEST);
         BookedRoom bookedRoom = bookedRoomService.getBookedRoomByBookingId(bookingId);
         if (bookedRoom != null) {
             bookedRoomService.removeBookedRoom(bookingId);
-            return new ResponseEntity<>("Booked Room deleted", HttpStatus.OK);
+            Room room = roomService.getRoomByNumber(bookedRoom.getRoom().getRoomNumber());
+            // update room status to taken
+            room.setEStatus(EStatus.AVAILABLE);
+            roomService.updateRoom(room);
+
+            // update booked room status to CANCELLED
+            bookedRoom.setEBillStatus(EBillStatus.CANCELLED);
+            bookedRoomService.updateBookedRoom(bookedRoom);
+            return new ResponseEntity<>("Booked Room cancelled", HttpStatus.OK);
         }
         return new ResponseEntity<>("No such Booked Room", HttpStatus.NOT_FOUND);
     }

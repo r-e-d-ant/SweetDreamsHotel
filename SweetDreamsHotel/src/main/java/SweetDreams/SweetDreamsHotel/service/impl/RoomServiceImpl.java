@@ -17,8 +17,8 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
-    public Room saveRoom(Room room) {
-        return roomRepository.save(room);
+    public void saveRoom(Room room) {
+        roomRepository.save(room);
     }
 
     @Override
@@ -32,12 +32,12 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
-    public Room updateRoom(Room room) {
-        return roomRepository.save(room);
+    public void updateRoom(Room room) {
+        roomRepository.save(room);
     }
 
     @Override
-    public Room removeRoom(Room room) {
-        return roomRepository.save(room);
+    public void removeRoom(Room room) {
+        roomRepository.delete(room);
     }
 }
