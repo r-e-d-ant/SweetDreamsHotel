@@ -1,5 +1,6 @@
 package SweetDreams.SweetDreamsHotel.controller;
 
+import SweetDreams.SweetDreamsHotel.MailService;
 import SweetDreams.SweetDreamsHotel.model.BookedRoom;
 import SweetDreams.SweetDreamsHotel.model.BookedReceipt;
 import SweetDreams.SweetDreamsHotel.model.Enums.EBillStatus;
@@ -20,6 +21,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PathVariable;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
@@ -29,12 +32,14 @@ public class BookedReceiptController {
     BookedReceiptService bookedReceiptService;
     BookedRoomService bookedRoomService;
     RoomService roomService;
+    MailService mailService;
 
     @Autowired
-    public BookedReceiptController(BookedReceiptService bookedReceiptService, BookedRoomService bookedRoomService, RoomService roomService) {
+    public BookedReceiptController(BookedReceiptService bookedReceiptService, BookedRoomService bookedRoomService, RoomService roomService, MailService mailService) {
         this.bookedReceiptService = bookedReceiptService;
         this.bookedRoomService = bookedRoomService;
         this.roomService = roomService;
+        this.mailService = mailService;
     }
 
     // register new booked room receipt
@@ -55,6 +60,22 @@ public class BookedReceiptController {
         // update booked room status to BILLED
         bookedRoom.setEBillStatus(EBillStatus.BILLED);
         bookedRoomService.updateBookedRoom(bookedRoom);
+
+        // Calculate total nights
+        long totalNights = ChronoUnit.DAYS.between(bookedRoom.getCheckinDate(), bookedRoom.getCheckoutDate());
+
+        // Calculate total price
+        double totalPrice = totalNights * room.getPrice();
+
+        mailService.sendEmail(bookedRoom.getCustomer().getEmail(),
+                "Sweet Dreams Hotel - Booked Room Receipt",
+                "<h2>Dear "+bookedRoom.getCustomer().getFullname() +" below is your room bill.</h2>" +
+                        "<p>Hotel Room Nr: "+room.getRoomNumber()+"</p>" +
+                        "<p>Hotel Room Type: "+room.getERoomType()+"</p>" +
+                        "<p>Check In date: "+bookedRoom.getCheckinDate()+" Check Out date: "+bookedRoom.getCheckoutDate()+"" +
+                        "<p>Nights: "+totalNights+"</p>" +
+                        "<p>Total Price: "+totalPrice+"$</p>" +
+                        "<h2>Welcome back.</h2>");
         return new ResponseEntity<>(bookedReceipt, HttpStatus.CREATED);
     }
 

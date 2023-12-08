@@ -1,6 +1,7 @@
 package SweetDreams.SweetDreamsHotel.controller;
 
 import SweetDreams.SweetDreamsHotel.JwtTokenProvider;
+import SweetDreams.SweetDreamsHotel.MailService;
 import SweetDreams.SweetDreamsHotel.model.Enums.EUserRole;
 import SweetDreams.SweetDreamsHotel.model.SweetDreamsUser;
 import SweetDreams.SweetDreamsHotel.service.SweetDreamsUserService;
@@ -24,11 +25,13 @@ import java.util.UUID;
 public class SweetDreamsUserController {
     private final JwtTokenProvider jwtTokenProvider;
     private final SweetDreamsUserService sweetDreamsUserService;
+    private MailService mailService;
 
     @Autowired
-    public SweetDreamsUserController(JwtTokenProvider jwtTokenProvider, SweetDreamsUserService sweetDreamsUserService) {
+    public SweetDreamsUserController(JwtTokenProvider jwtTokenProvider, SweetDreamsUserService sweetDreamsUserService, MailService mailService) {
         this.jwtTokenProvider = jwtTokenProvider;
         this.sweetDreamsUserService = sweetDreamsUserService;
+        this.mailService = mailService;
     }
 
     // create new user
@@ -55,6 +58,11 @@ public class SweetDreamsUserController {
 
         sweetDreamsUser.setUserPassword(hashedPassword);
         sweetDreamsUserService.saveUser(sweetDreamsUser);
+
+        // send email confirmation.
+        mailService.sendEmail(sweetDreamsUser.getUserEmail(),
+                "Sweet Dreams Hotel - Account Signup",
+                "<h2>Your account is created successfully</h2><p>Please proceed to give your full information before booking a room.</p><p><a href='http://localhost:3000/customer'>Click here to provide full information</a></p>");
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
 

@@ -1,5 +1,6 @@
 package SweetDreams.SweetDreamsHotel.controller;
 
+import SweetDreams.SweetDreamsHotel.MailService;
 import SweetDreams.SweetDreamsHotel.model.BookedRoom;
 import SweetDreams.SweetDreamsHotel.model.Customer;
 import SweetDreams.SweetDreamsHotel.model.Enums.EBillStatus;
@@ -29,13 +30,16 @@ public class BookedRoomController {
     BookedRoomService bookedRoomService;
     RoomService roomService;
     CustomerService customerService;
+    MailService mailService;
 
     @Autowired
-    public BookedRoomController(BookedRoomService bookedRoomService, RoomService roomService, CustomerService customerService) {
+    public BookedRoomController(BookedRoomService bookedRoomService, RoomService roomService, CustomerService customerService, MailService mailService) {
         this.bookedRoomService = bookedRoomService;
         this.roomService = roomService;
         this.customerService = customerService;
+        this.mailService = mailService;
     }
+
 
     // register new booked room
     @PostMapping("/book")
@@ -60,6 +64,11 @@ public class BookedRoomController {
         // update room status to taken
         room.setEStatus(EStatus.TAKEN);
         roomService.updateRoom(room);
+
+        // send email confirmation.
+        mailService.sendEmail(customer.getEmail(),
+                "Sweet Dreams Hotel - Room Booking",
+                "<h2>Dear "+customer.getFullname() +" your room is successfully booked, Happy stay</h2><p></p><p>Check In Date: "+bookedRoom.getCheckinDate()+" Check Out Date: "+bookedRoom.getCheckoutDate()+"</p>");
         return new ResponseEntity<>(bookedRoom, HttpStatus.CREATED);
     }
 
@@ -109,6 +118,10 @@ public class BookedRoomController {
             // update booked room status to CANCELLED
             bookedRoom.setEBillStatus(EBillStatus.CANCELLED);
             bookedRoomService.updateBookedRoom(bookedRoom);
+            // send email confirmation.
+            mailService.sendEmail(bookedRoom.getCustomer().getEmail(),
+                    "Sweet Dreams Hotel - Room Booking",
+                    "<h2>Dear "+bookedRoom.getCustomer().getEmail() +" Your Room is cancelled, Welcome back</h2>");
             return new ResponseEntity<>("Booked Room cancelled", HttpStatus.OK);
         }
         return new ResponseEntity<>("No such Booked Room", HttpStatus.NOT_FOUND);
