@@ -25,7 +25,7 @@ import java.util.UUID;
 public class SweetDreamsUserController {
     private final JwtTokenProvider jwtTokenProvider;
     private final SweetDreamsUserService sweetDreamsUserService;
-    private MailService mailService;
+    private final MailService mailService;
 
     @Autowired
     public SweetDreamsUserController(JwtTokenProvider jwtTokenProvider, SweetDreamsUserService sweetDreamsUserService, MailService mailService) {
