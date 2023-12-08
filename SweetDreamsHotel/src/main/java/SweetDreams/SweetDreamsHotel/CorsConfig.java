@@ -13,7 +13,7 @@ public class CorsConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins("http://localhost:3000", "https://sweet-dreams-hotel.vercel.app/")
+                        .allowedOrigins("https://sweet-dreams-hotel.vercel.app/", "http://127.0.0.1:3000", "https://sweet-dreams-hotel.onrender.com/")
                         .allowedMethods("*") // Allow all HTTP methods
                         .allowedHeaders("*") // Allow all headers
                         .allowCredentials(true);
