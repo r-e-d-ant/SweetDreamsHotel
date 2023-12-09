@@ -51,18 +51,8 @@ public class RoomController {
         });
 
         try {
-            // Use a buffer to read the file in chunks
-            byte[] buffer = new byte[1024];
-            int bytesRead;
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-
-            while ((bytesRead = inputStream.read(buffer)) != -1) {
-                outputStream.write(buffer, 0, bytesRead);
-            }
-
-            // Convert byte array to BufferedImage
-            ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(outputStream.toByteArray());
-            BufferedImage originalImage = ImageIO.read(byteArrayInputStream);
+            // Convert MultipartFile to BufferedImage
+            BufferedImage originalImage = ImageIO.read(inputStream);
 
             // Calculate the new height to maintain the aspect ratio
             int width = 800;
@@ -79,16 +69,18 @@ public class RoomController {
             ImageIO.write(resizedImage, formatName, os);
             InputStream is = new ByteArrayInputStream(os.toByteArray());
 
-            // Rest of your code remains the same
+            // Set the content length for the stream
+            objectMetadata.setContentLength(os.size());
+
+            // Upload the stream to Amazon S3
             amazonS3.putObject(path, fileName, is, objectMetadata);
 
-            byteArrayInputStream.close();
             is.close();
-            outputStream.close();
             os.close();
         } catch (AmazonServiceException | IOException e) {
             throw new IllegalStateException(e);
         }
+
     }
 
 
