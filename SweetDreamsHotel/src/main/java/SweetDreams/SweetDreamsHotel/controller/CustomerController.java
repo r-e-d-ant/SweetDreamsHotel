@@ -1,11 +1,14 @@
 package SweetDreams.SweetDreamsHotel.controller;
 
+import SweetDreams.SweetDreamsHotel.MailService;
 import SweetDreams.SweetDreamsHotel.model.Customer;
+import SweetDreams.SweetDreamsHotel.model.Enums.EUserRole;
 import SweetDreams.SweetDreamsHotel.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -22,10 +25,12 @@ import java.util.UUID;
 @RequestMapping("/customer")
 public class CustomerController {
     CustomerService customerService;
+    private final MailService mailService;
 
     @Autowired
-    public CustomerController(CustomerService customerService) {
+    public CustomerController(CustomerService customerService, MailService mailService) {
         this.customerService = customerService;
+        this.mailService = mailService;
     }
 
     // create new customer
@@ -40,9 +45,22 @@ public class CustomerController {
             return new ResponseEntity<>(HttpStatus.FOUND);
         }
         /* ---------------------------------------------- */
+        customer.setEUserRole(EUserRole.CUSTOMER);
 
+        // encrypt password using bcrypt and save it
+        BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
+        String enteredPassword = customer.getUserPassword();
+        String hashedPassword = passwordEncoder.encode(enteredPassword);
+
+        customer.setUserPassword(hashedPassword);
         customer.setCreatedAt(customer.getCreatedAt());
         customerService.saveCustomer(customer);
+
+        // send email confirmation.
+        mailService.sendEmail(customer.getEmail(),
+                "Sweet Dreams Hotel - Account Signup",
+                "<h2>Your account is created successfully</h2><p>You can proceed to book your room.</p><p><a href='http://localhost:3000/hotel-rooms'>Click here to see rooms you can book</a></p>");
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
 

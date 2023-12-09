@@ -12,6 +12,7 @@ import SweetDreams.SweetDreamsHotel.service.RoomService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -74,6 +75,7 @@ public class BookedRoomController {
 
     // get one booked room
     @GetMapping("/{bookingId}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> oneRoom(@PathVariable UUID bookingId) {
         if (bookingId == null)
             return new ResponseEntity<>("Missing booking Id", HttpStatus.BAD_REQUEST);
@@ -83,13 +85,23 @@ public class BookedRoomController {
 
     // get all booked room
     @GetMapping("/all")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<BookedRoom>> allBookedRooms() {
         List<BookedRoom> bookedRoomList = bookedRoomService.getAllBookedRooms();
         return new ResponseEntity<>(bookedRoomList, HttpStatus.OK);
     }
 
+    @GetMapping("/{customerId}/all")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<BookedRoom>> allBookedRoomsByCustomer(@PathVariable UUID customerId) {
+        Customer customer = customerService.getCustomerByCustomerId(customerId);
+        List<BookedRoom> bookedRoomList = bookedRoomService.allBookedRoomsByCustomer(customer);
+        return new ResponseEntity<>(bookedRoomList, HttpStatus.OK);
+    }
+
     // update booked room
     @PutMapping("/{bookingId}/update")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> modifyUser(@PathVariable UUID bookingId, @RequestBody BookedRoom bookedRoom) {
         if (bookingId == null)
             return new ResponseEntity<>("Missing booking Id", HttpStatus.BAD_REQUEST);
@@ -104,6 +116,7 @@ public class BookedRoomController {
 
     // delete room
     @DeleteMapping("/{bookingId}/delete")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteUser(@PathVariable UUID bookingId) {
         if (bookingId == null)
             return new ResponseEntity<>("Missing booking Id", HttpStatus.BAD_REQUEST);

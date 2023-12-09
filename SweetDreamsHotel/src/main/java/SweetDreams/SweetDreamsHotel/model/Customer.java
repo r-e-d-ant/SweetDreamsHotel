@@ -1,5 +1,6 @@
 package SweetDreams.SweetDreamsHotel.model;
 
+import SweetDreams.SweetDreamsHotel.model.Enums.EUserRole;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.GeneratedValue;
@@ -26,6 +27,8 @@ public class Customer {
     private String fullname;
     private String phone;
     private String email;
+    private String userPassword;
+    private EUserRole eUserRole;
     @CreationTimestamp
     private LocalDate createdAt;
 }

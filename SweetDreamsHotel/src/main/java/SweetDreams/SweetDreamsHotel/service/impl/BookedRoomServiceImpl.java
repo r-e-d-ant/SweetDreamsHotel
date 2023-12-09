@@ -1,6 +1,7 @@
 package SweetDreams.SweetDreamsHotel.service.impl;
 
 import SweetDreams.SweetDreamsHotel.model.BookedRoom;
+import SweetDreams.SweetDreamsHotel.model.Customer;
 import SweetDreams.SweetDreamsHotel.repository.BookedRoomRepository;
 import SweetDreams.SweetDreamsHotel.service.BookedRoomService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,11 @@ public class BookedRoomServiceImpl implements BookedRoomService {
     @Override
     public List<BookedRoom> getAllBookedRooms() {
         return bookedRoomRepository.findAll();
+    }
+
+    @Override
+    public List<BookedRoom> allBookedRoomsByCustomer(Customer customer) {
+        return bookedRoomRepository.getBookedRoomByCustomer(customer);
     }
 
     @Override
