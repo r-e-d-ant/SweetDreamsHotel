@@ -23,7 +23,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
-import org.apache.commons.io.IOUtils;
 import net.coobird.thumbnailator.Thumbnails;
 
 import javax.imageio.ImageIO;
@@ -52,8 +51,18 @@ public class RoomController {
         });
 
         try {
-            // Convert MultipartFile to BufferedImage
-            BufferedImage originalImage = ImageIO.read(inputStream);
+            // Use a buffer to read the file in chunks
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+
+            // Convert byte array to BufferedImage
+            ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(outputStream.toByteArray());
+            BufferedImage originalImage = ImageIO.read(byteArrayInputStream);
 
             // Calculate the new height to maintain the aspect ratio
             int width = 800;
@@ -69,12 +78,16 @@ public class RoomController {
             String formatName = fileName.substring(fileName.lastIndexOf(".") + 1);
             ImageIO.write(resizedImage, formatName, os);
             InputStream is = new ByteArrayInputStream(os.toByteArray());
+
+            // Rest of your code remains the same
             amazonS3.putObject(path, fileName, is, objectMetadata);
+
+            byteArrayInputStream.close();
             is.close();
-        } catch (AmazonServiceException e) {
+            outputStream.close();
+            os.close();
+        } catch (AmazonServiceException | IOException e) {
             throw new IllegalStateException(e);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
     }
 
