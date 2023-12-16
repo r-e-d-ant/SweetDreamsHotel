@@ -47,6 +47,7 @@ public class SweetDreamsUserController {
 
                 // set token as HttpOnly cookie
                 Cookie cookie = new Cookie("sweetDreamsUserToken", token);
+                System.out.println(token);
                 cookie.setHttpOnly(true);
                 response.addCookie(cookie);
 
