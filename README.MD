@@ -54,6 +54,8 @@ Status
   PostgreSql as DBMS
   Hosting provider: render, hosting both backend and database.
 
+React version: https://github.com/r-e-d-ant/sweetDreams.git
+
   ## Thierry MUGISHA, 24300.
 
   ``Screenshot``
