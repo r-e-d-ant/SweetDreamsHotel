@@ -7,7 +7,7 @@ COPY . .
 RUN mvn clean package -DskipTests
 
 FROM openjdk:17.0.1-jdk-slim
-COPY --from=build /target/yourappsnapshot.jar app.jar
+COPY --from=build /target/SweetDreamsHotel-0.0.1-SNAPSHOT.jar app.jar
 # Expose the port that your Spring Boot application will run on
 EXPOSE 8080
 # Specify the command to run on container startup
