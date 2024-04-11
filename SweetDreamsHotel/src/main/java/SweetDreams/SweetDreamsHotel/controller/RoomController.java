@@ -80,7 +80,6 @@ public class RoomController {
         } catch (AmazonServiceException | IOException e) {
             throw new IllegalStateException(e);
         }
-
     }
 
 
