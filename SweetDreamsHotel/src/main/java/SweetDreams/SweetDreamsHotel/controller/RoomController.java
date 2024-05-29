@@ -1,15 +1,13 @@
 package SweetDreams.SweetDreamsHotel.controller;
 
-import SweetDreams.SweetDreamsHotel.BucketName;
 import SweetDreams.SweetDreamsHotel.model.Enums.EStatus;
 import SweetDreams.SweetDreamsHotel.model.Room;
 import SweetDreams.SweetDreamsHotel.service.RoomService;
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.Value;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +20,9 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import net.coobird.thumbnailator.Thumbnails;
 
@@ -30,6 +31,8 @@ import javax.imageio.ImageIO;
 @RestController
 @RequestMapping(value = "/room")
 public class RoomController {
+    @Value("${upload.path}")
+    private String uploadPath;
     private final RoomService roomService;
     private final AmazonS3 amazonS3;
 
@@ -87,13 +90,14 @@ public class RoomController {
     @PostMapping(value="/create", consumes = "multipart/form-data")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> createRoom(@RequestPart("room") String roomString,
-                                        @RequestParam("roomImg") MultipartFile file) throws JsonProcessingException {
+                                        @RequestParam("roomImg") MultipartFile file) throws IOException {
         Room room = new ObjectMapper().readValue(roomString, Room.class);
         System.out.println(room);
         if (room == null)
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
 
-        if (uploadImageToBucket(file, room)) return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        String imagePath = saveImage(file);
+        if (imagePath.length() > 5) return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
 
         /* check if room with that nr is already there */
         Room existingRoomNr = roomService.getRoomByNumber(room.getRoomNumber());
@@ -101,12 +105,24 @@ public class RoomController {
             return new ResponseEntity<>(HttpStatus.FOUND);
         }
         /* ---------------------------------------------- */
+        room.setRoomImg(imagePath);
         room.setCreatedAt(room.getCreatedAt());
         room.setERoomType(room.getERoomType());
         room.setEStatus(EStatus.AVAILABLE);
         System.out.println(room);
         roomService.saveRoom(room);
         return new ResponseEntity<>(room, HttpStatus.CREATED);
+    }
+
+    private String saveImage(MultipartFile file) throws IOException {
+        String fileName= UUID.randomUUID() +"_"+file.getOriginalFilename();
+        Path imagesDirectory= Paths.get(uploadPath);
+        if(!Files.exists(imagesDirectory)){
+            Files.createDirectories(imagesDirectory);
+        }
+        Path filePath=imagesDirectory.resolve(fileName);
+        Files.copy(file.getInputStream(),filePath);
+        return fileName;
     }
 
     // get one room
@@ -129,7 +145,7 @@ public class RoomController {
     @PutMapping(value = "/{roomNr}/update", consumes = "multipart/form-data")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> modifyUser(@PathVariable String roomNr, @RequestPart("room") String roomString,
-                                        @RequestParam("roomImg") MultipartFile file) throws JsonProcessingException {
+                                        @RequestParam("roomImg") MultipartFile file) throws IOException {
         Room room = new ObjectMapper().readValue(roomString, Room.class);
         if (roomNr == null)
             return new ResponseEntity<>("Missing room Nr", HttpStatus.BAD_REQUEST);
@@ -157,44 +173,47 @@ public class RoomController {
                 existingRoom.setRoomImg(room.getRoomImg());
             }
 
-            if (uploadImageToBucket(file, existingRoom)) return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            String imagePath = saveImage(file);
+            if (imagePath.length() > 5) return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            existingRoom.setRoomImg(imagePath);
+
             roomService.updateRoom(existingRoom);
             return new ResponseEntity<>(room, HttpStatus.OK);
         }
         return new ResponseEntity<>(room, HttpStatus.NOT_FOUND);
     }
 
-    private boolean uploadImageToBucket(@RequestParam("roomImg") MultipartFile file, Room room) {
-        try {
-            /* save it to amazon bucket */
-
-            // get file metadata
-            Map<String, String> metadata = new HashMap<>();
-            metadata.put("Content-Type", file.getContentType());
-            metadata.put("Content-Length", String.valueOf(file.getSize()));
-
-            // Save Image in S3
-            UUID uniqueKey = UUID.randomUUID();
-            String path = String.format("%s/%s", BucketName.SWEET_DREAMS_HOTEL_IMAGE.getBucketName(), uniqueKey);
-            String fileName = String.format("%s", file.getOriginalFilename());
-
-            try {
-                upload(path, fileName, Optional.of(metadata), file.getInputStream());
-            } catch (IOException e) {
-                throw new IllegalStateException("Failed to upload file", e);
-            }
-
-            // Construct the S3 URL
-            String s3Url = String.format("https://%s.s3.%s.amazonaws.com/%s/%s", BucketName.SWEET_DREAMS_HOTEL_IMAGE.getBucketName(), Regions.EU_NORTH_1.getName(), uniqueKey.toString(), fileName);
-
-            // Set the image name in the Room entity
-            room.setRoomImg(s3Url);
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-            return true;
-        }
-        return false;
-    }
+//    private boolean uploadImageToBucket(@RequestParam("roomImg") MultipartFile file, Room room) {
+//        try {
+//            /* save it to amazon bucket */
+//
+//            // get file metadata
+//            Map<String, String> metadata = new HashMap<>();
+//            metadata.put("Content-Type", file.getContentType());
+//            metadata.put("Content-Length", String.valueOf(file.getSize()));
+//
+//            // Save Image in S3
+//            UUID uniqueKey = UUID.randomUUID();
+//            String path = String.format("%s/%s", BucketName.SWEET_DREAMS_HOTEL_IMAGE.getBucketName(), uniqueKey);
+//            String fileName = String.format("%s", file.getOriginalFilename());
+//
+//            try {
+//                upload(path, fileName, Optional.of(metadata), file.getInputStream());
+//            } catch (IOException e) {
+//                throw new IllegalStateException("Failed to upload file", e);
+//            }
+//
+//            // Construct the S3 URL
+//            String s3Url = String.format("https://%s.s3.%s.amazonaws.com/%s/%s", BucketName.SWEET_DREAMS_HOTEL_IMAGE.getBucketName(), Regions.EU_NORTH_1.getName(), uniqueKey.toString(), fileName);
+//
+//            // Set the image name in the Room entity
+//            room.setRoomImg(s3Url);
+//        } catch (Exception e) {
+//            System.out.println(e.getMessage());
+//            return true;
+//        }
+//        return false;
+//    }
 
     // delete room
     @DeleteMapping("/{roomNr}/delete")
